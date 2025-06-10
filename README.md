@@ -1,5 +1,7 @@
 # Bachelorarbeit
-Git-Repository für die Dateien und Codes zu meiner Bachelorarbeit.
+Das folgende Git-Repository wird für die Bachelorarbeit mit dem Titel "Path Integral Monte Carlo Simulations and Optimizations via Variational Autoencoders". 
+
+Der folgende Code enthält die benötigten Files und Daten für die Implementation von einem VAE, dabei wurden zunächst die Eingabedaten mit einer PIMC simulation erzeugt diese befinden sich allerdings in dem File $input_data.csv$.
 
 In der Datei "VAE.py" befindet sich der Code zum Variational-Autoencoder. Dabei wurden zunächst die wichtigsten Libraries importiert. 
 
