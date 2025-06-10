@@ -1,7 +1,7 @@
 # Bachelorarbeit
-Das folgende Git-Repository wird für die Bachelorarbeit mit dem Titel "Path Integral Monte Carlo Simulations and Optimizations via Variational Autoencoders". 
+Das folgende Git-Repository wird für die Bachelorarbeit mit dem Titel "Path Integral Monte Carlo Simulations and Optimizations via Variational Autoencoders". Für das Training und die Implementation des VAE wurden die Input Daten eines harmonischen Oszillators erzeugt.
 
-Der folgende Code enthält die benötigten Files und Daten für die Implementation von einem VAE, dabei wurden zunächst die Eingabedaten mit einer PIMC simulation erzeugt diese befinden sich allerdings in dem File $input\_data.csv$.
+Der folgende Code enthält die benötigten Files und Daten für die Implementation von einem VAE, dabei wurden zunächst die Eingabedaten mit einer PIMC simulation erzeugt diese befinden sich allerdings in dem File input\_data.csv
 
 In der Datei "VAE.py" befindet sich der Code zum Variational-Autoencoder. Dabei wurden zunächst die wichtigsten Libraries importiert. 
 
