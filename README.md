@@ -3,7 +3,8 @@ Das folgende Git-Repository wird für die Bachelorarbeit mit dem Titel "Path Int
 
 Der folgende Code enthält die benötigten Files und Daten für die Implementation von einem VAE, dabei wurden zunächst die Eingabedaten mit einer PIMC simulation erzeugt diese befinden sich allerdings in dem File input\_data.csv
 
-Workflow:
+
+## Workflow:
 
 Open the file config.py, in this file the parameters such as number of epochs or the file paths can be adjusted.
 Open the file VAE.py and run it, make sure you have the input file and all necessary requirements, see file requirements.txt, some parameters may be adjusted additionally -> see comments in code.
