@@ -3,13 +3,16 @@ Das folgende Git-Repository wird für die Bachelorarbeit mit dem Titel "Path Int
 
 Der folgende Code enthält die benötigten Files und Daten für die Implementation von einem VAE, dabei wurden zunächst die Eingabedaten mit einer PIMC simulation erzeugt diese befinden sich allerdings in dem File input\_data.csv
 
-In der Datei "VAE.py" befindet sich der Code zum Variational-Autoencoder. Dabei wurden zunächst die wichtigsten Libraries importiert. 
+Workflow:
 
-Die eingelesenen Daten welche sich in der Datei "input_data.csv" befinden wurden vorher mithilfe einer PIMC Simulation erzeugt, es handelt sich hierbei um die Bead Positions eines H2-Moleküls.
+Open the file config.py, in this file the parameters such as number of epochs or the file paths can be adjusted.
+Open the file VAE.py and run it, make sure you have the input file and all necessary requirements, see file requirements.txt, some parameters may be adjusted additionally -> see comments in code.
 
-Anschließend wurde ein VAE erstellt, hierfür wurde je für den Encoder und Decoder eine Klasse erstellt, wobei diese in der Klasse VAE dann wieder aufgerufen wurden. Weiters werden mithilfe des Latent Space dann neue Datenpunkte erzeugt welche unter dem Namen "generated_configurations.csv" abgespeichert wurden, ebenso werden die latent_space werte in einer weiteren Datei namens "latent_variables.csv" gespeichert.
+After running the file VAE.py, the latent variables can be seen in file latent\_variables.csv, the generated configurations can be seen in the files generated\_configurations.csv and generated\_configurations\_denorm.csv
 
+In the file plot\_latent\_variables.py the latent space can be generated, the data should roughly follow a normal distribution.
 
-In der Datei "plot_generated_examples.py" befindet sich der Code, mit welchem zunächst die einzelnen Daten geplottet werden, dann wird noch der Mittelwert der Positions berechnet und diese geplottet die Verteilungsfunktion sollte einer Normalverteilung entsprechen.
+In the file Comparator\_positions.py the position distribution of the input and output data is plotted, may parameters may be adjusted like filepath or so on -> see comments in the code. THe position distribution should roughly follow a normal distribution and the output data should match the input data.
 
-In der Datei "plot_latent_variables.py" befindet sich der Code um den Latent space zu plotten, es wird zunächst ein scatter Plot erstellt und anschließend die Verteilungen der beiden Variablen.
+In the file COmparator\_energies.py the energy distributions are plottet of the input and output data, some parameters may be adjusted especially the fit parameters are dependent on the data, for a description of the fit parameters see the comments in the code. 
+
