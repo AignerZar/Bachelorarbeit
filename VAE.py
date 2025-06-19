@@ -28,7 +28,7 @@ Loading and preparing the input data--------------------------------------------
 
 # function to parse into bead vector 
 def parse_line(line):
-    matches = re.findall(r"\[\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*\]", line)
+    matches = re.findall(r"\[\s*(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)\s+(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)\s+(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)\s*\]", line)
     beads = [list(map(float, m)) for m in matches[:20]]  
     return np.array(beads)  
 
@@ -62,34 +62,22 @@ n_beads = bead_configurations.shape[1]
 print("Anzahl Beads pro Konfiguration:", n_beads)
 
 # COnverting into a tensor
-data_tensor = torch.tensor(bead_configurations_norm, dtype=torch.float32)
+data_tensor = torch.tensor(bead_configurations_norm, dtype=torch.float32).view(-1, 60).to(config.device)
 print("Shape des Tensors:", data_tensor.shape)  # (n_samples, 20, 3)
 
-# packing into dataloader
-dataset = TensorDataset(data_tensor)
-dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True)
-
-data_tensor = data_tensor.view(-1, 20 * 3)  
-
-data_tensor_flat = data_tensor.view(-1, 20 * 3)
-
 # Splitting in training and validation data
-train_data, val_data = train_test_split(data_tensor_flat, test_size=config.validation_split, random_state=config.seed)
-
-# developing tensordatasets
-train_dataset = TensorDataset(train_data)
-val_dataset = TensorDataset(val_data)
+train_data, val_data = train_test_split(data_tensor, test_size=config.validation_split, random_state=config.seed)
 
 # DataLoader
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+train_loader = DataLoader(TensorDataset(train_data), batch_size=config.batch_size, shuffle=True)
+val_loader = DataLoader(TensorDataset(val_data), batch_size=config.batch_size, shuffle=False)
 
 """
 Defining the architecture of the VAE-------------------------------------------------------------------------------------------------
 """
 # definition of the encoder class
 class Encoder(nn.Module):
-    def __init__(self, input_dim=20, latent_dim=2): 
+    def __init__(self, input_dim, latent_dim): 
         super(Encoder, self).__init__()
         self.fc1 = nn.Linear(input_dim, 256)
         self.fc2 = nn.Linear(256, 128)
@@ -143,63 +131,58 @@ class VAE(nn.Module):
     
 # definition of the loss function    
 def vae_loss(x, x_hat, mu, logvar):
-    recon_loss = F.mse_loss(x_hat, x, reduction='sum')
-    kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    kl_div /= x.shape[0]
+    recon_loss = F.mse_loss(x_hat, x, reduction='sum') / x.size(0)
+    kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
     return recon_loss + kl_div, recon_loss, kl_div
         
 """
 Training loop-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 """
-dataset = TensorDataset (data_tensor)
-loader = DataLoader(dataset, batch_size=16, shuffle=True)
-
 # using the adam optimizer 
-model = VAE(input_dim=config.input_dim, latent_dim=config.latent_dimension) 
+model = VAE(config.input_dim, config.latent_dimension).to(config.device)
 optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
-n_epochs = 100 #number epochs can be adjusted
+
 loss_history = []
 
-
-for epoch in range(n_epochs):
+for epoch in range(config.n_epochs):
     model.train()
     total_loss = total_recon = total_kl = 0
 
-    for batch in train_loader:
-        x = batch[0]
+    for x_batch, in train_loader:
+        x_batch = x_batch.to(config.device)
         optimizer.zero_grad()
-        x_hat, mu, logvar = model(x)
-        loss, recon_loss, kl_div = vae_loss(x, x_hat, mu, logvar)
+        x_hat, mu, logvar = model(x_batch)
+        loss, recon, kl = vae_loss(x_batch, x_hat, mu, logvar)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-        total_recon += recon_loss.item()
-        total_kl += kl_div.item()
+        total_recon += recon.item()
+        total_kl += kl.item()
 
     avg_loss = total_loss / len(train_loader)
-    avg_recon = total_recon / len(train_dataset)
-    avg_kl = total_kl / len(train_dataset)
+    avg_recon = total_recon / len(train_loader)
+    avg_kl = total_kl / len(train_loader)
 
     # Validation
     model.eval()
     val_loss = val_recon = val_kl = 0
     with torch.no_grad():
-        for batch in val_loader:
-            x = batch[0]
-            x_hat, mu, logvar = model(x)
-            loss, recon_loss, kl_div = vae_loss(x, x_hat, mu, logvar)
+        for x_batch, in val_loader:
+            x_batch = x_batch.to(config.device)
+            x_hat, mu, logvar = model(x_batch)
+            loss, recon, kl = vae_loss(x_batch, x_hat, mu, logvar)
             val_loss += loss.item()
-            val_recon += recon_loss.item()
-            val_kl += kl_div.item()
+            val_recon += recon.item()
+            val_kl += kl.item()
 
     val_loss /= len(val_loader)
-    val_recon /= len(val_dataset)
-    val_kl /= len(val_dataset)
+    val_recon /= len(val_loader)
+    val_kl /= len(val_loader)
 
     loss_history.append((avg_loss, avg_recon, avg_kl, val_loss, val_recon, val_kl))
 
-    print(f"Epoch {epoch+1:03d} | Train Loss: {avg_loss:.2f} | Val Loss: {val_loss:.2f} | Recon: {avg_recon:.2f}/{val_recon:.2f} | KL: {avg_kl:.2f}/{val_kl:.2f}")
+    print(f"Epoch {epoch+1:03d} | Train Loss: {avg_loss:.3f} | Val Loss: {val_loss:.3f} | Recon: {avg_recon:.3f}/{val_recon:.3f} | KL: {avg_kl:.3f}/{val_kl:.3f}")
 
 """
 Latent space-----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -208,43 +191,20 @@ model.eval()
 with torch.no_grad():
     mu, logvar = model.encoder(data_tensor)
     z = model.reparameterize(mu, logvar)
-
-
-# Mean reconstruction error
-model.eval()
-with torch.no_grad():
-    x_hat, _, _ = model(data_tensor)
-    mse = F.mse_loss(x_hat, data_tensor, reduction='mean')
-    print(f"Mean Reconstruction Error: {mse}")
-
-z_numpy = z.cpu().numpy()
-
-# saving the latent variables
-np.savetxt(config.latent_output_file, z_numpy, delimiter=",", header="z1,z2", comments='')
+    np.savetxt(config.latent_output_file, mu.cpu().numpy(), delimiter=",", header="latent", comments='')
 
 
 """
 Saving the data----------------------------------------------------------------------------------------------------------------------------------------------------------
 """
-# generating new samples
-model.eval()
-num_samples = 5000 # can be adjusted dependent how much generated samples are needed
-latent_dim = 2
-
-z_samples = torch.randn(num_samples, latent_dim)
-
+z_samples = torch.randn(config.num_samples, config.latent_dimension).to(config.device)
 with torch.no_grad():
-    new_data = model.decoder(z_samples)
+    generated = model.decoder(z_samples)
 
-new_data_numpy = new_data.cpu().numpy()
-np.savetxt(config.generated_output_file, new_data_numpy, delimiter=",")
-print("New Configurations stored as 'generated_configurations.csv'")
-
-new_data_reshaped = new_data.view(-1, 20, 3).cpu().numpy()
-new_data_denorm = new_data_reshaped * std + mean  # Denormalizing
-
-np.savetxt(config.generated_output_denorm_file, new_data_denorm.reshape(num_samples, -1), delimiter=",")
-print("New denormalized Configurations stored as 'generated_configurations_denorm.csv'")
+generated_np = generated.cpu().numpy().reshape(config.num_samples, 20, 3)
+generated_np_denorm = generated_np * std + mean
+np.savetxt(config.generated_output_file, generated_np.reshape(config.num_samples, -1), delimiter=",")
+np.savetxt(config.generated_output_denorm_file, generated_np_denorm.reshape(config.num_samples, -1), delimiter=",")
 
 """
 Plotting the training and validation loss course------------------------------------------------------------------------------------------------------------------------------------
@@ -257,6 +217,6 @@ plt.title('Training vs Validation Loss')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
-plt.grid(True)
 plt.tight_layout()
+plt.savefig(f"loss_{config.n_epochs}.pdf")
 plt.show()
