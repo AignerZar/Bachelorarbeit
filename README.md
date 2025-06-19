@@ -17,3 +17,5 @@ In the file Comparator\_positions.py the position distribution of the input and 
 
 In the file COmparator\_energies.py the energy distributions are plottet of the input and output data, some parameters may be adjusted especially the fit parameters are dependent on the data, for a description of the fit parameters see the comments in the code. 
 
+## Additional information
+In the thesis a few architectures were tested, therefore in the config file some test hyperparameters and test file paths were defined. So to test different architecture, therefore only the call of the COnfig values in the VAE file had to be changed.
